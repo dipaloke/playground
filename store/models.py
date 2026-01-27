@@ -4,6 +4,12 @@ from django.db import models
 
 class Collection(models.Model):
     title = models.CharField(max_length=255)
+    featured_product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, related_name='+')
+
+
+class Promotion(models.Model):
+    description = models.CharField(max_length=255)
+    discount = models.FloatField()
 
 
 class Product(models.Model):
@@ -13,6 +19,7 @@ class Product(models.Model):
     inventory = models.IntegerField()
     last_update = models.DateTimeField(auto_now=True)
     Collection = models.ForeignKey(Collection, on_delete=models.PROTECT)
+    promotions = models.ManyToManyField(Promotion)
 
 class Item(models.Model):
     quantity = models.PositiveSmallIntegerField()
@@ -76,7 +83,7 @@ class Address(models.Model):
 
 
 
-class Cart:
+class Cart(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # items = models.ForeignKey(Item, on_delete=models.CASCADE)
 
