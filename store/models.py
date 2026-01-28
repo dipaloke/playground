@@ -14,6 +14,7 @@ class Promotion(models.Model):
 
 class Product(models.Model):
     title = models.CharField(max_length=225)
+    slug = models.SlugField()
     description = models.TextField()
     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
     inventory = models.IntegerField()
@@ -64,6 +65,11 @@ class Customer(models.Model):
     membership = models.CharField(max_length=1, choices=MEMBERSHIP_CHOICES, default=MEMBERSHIP_BRONZE)
     # orders = models.ForeignKey(Order, on_delete=models.CASCADE)
 
+class Meta(models.Model):
+    db_Table = 'store_customers'
+    indexes = [
+        models.Index(fields=['last_name', 'first_name'])
+    ]
 
 
 
@@ -80,6 +86,7 @@ class Address(models.Model):
     street = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    zip = models.IntegerField(null=True)
 
 
 
