@@ -27,6 +27,16 @@ def say_hello(request):
     queryset_four_string = Product.objects.filter(title__icontains='coffee') #(not case sensitive) filter across relationships (to find products that have coffee in their title)
     queryset_five_date = Product.objects.filter(last_update__year=2021) # find all the products updated at 2021
     queryset_six_null = Product.objects.filter(description__isnull=True) # To find all the products without description
+    queryset_products = Product.objects.all() [:5] # shows first 5 items excluding 5
+    queryset_products_one = Product.objects.all() [5:10] # skips firsts 5 then shows upto 9th items -> 5 items total
+    products_two = Product.objects.values('id','title') # To select necessary table columns
+    products_three = Product.objects.values('id','title', 'collection__title') # returns with related fields "__"
+    # only values return dictionary but with "values_list" method returns tuple
+    products_four = Product.objects.values_list('id','title', 'collection__title')
+    queryset_only = Product.objects.only('id', 'title') # selects columns but returns instances instead of dictionary
+    queryset_defer = Product.objects.defer('description') # selects all fields except description
+
+
 
 
 # Exercise
@@ -35,9 +45,11 @@ def say_hello(request):
     product_Set_inventory = Product.objects.filter(inventory__lt=10) # Products with low inventory > 10
     orders_Set = Order.objects.filter(customer__id=1) # Orders placed by customer with id 1
     order_item_Set = OrderItem.objects.filter(product__collection__id=3) # Order items for products in collection 3
+    #Select products that have been ordered and sort them by title
+    queryset_product_ids = Product.objects.filter(id__in=OrderItem.objects.values('product_id').distinct()).order_by("title")
 
     return render(request, 'hello.html', {'name': "Dipaloke",
                                             # 'titles': list(queryset_one)
                                               #'products': list(queryset_five_date),
-                                               'customers': list(customer_set_accounts)
+                                               'products': list(queryset_product_ids),
                                                 })
