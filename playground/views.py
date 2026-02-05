@@ -35,6 +35,9 @@ def say_hello(request):
     products_four = Product.objects.values_list('id','title', 'collection__title')
     queryset_only = Product.objects.only('id', 'title') # selects columns but returns instances instead of dictionary
     queryset_defer = Product.objects.defer('description') # selects all fields except description
+    queryset_preload_related_table = Product.objects.select_related('collection').all() #without preloading the related table collection the query will take a long time because it will query for individual products separately
+    queryset_preload_prefetch_related = Product.objects.prefetch_related('promotions').all() # When the related table can have multiple objects (product table can have multiple promotions )
+    queryset_preload_prefetch_related_select_related = Product.objects.prefetch_related('promotions').select_related('collection').all() # We can combine both methods together as both methods return a queryset
 
 
 
@@ -47,9 +50,12 @@ def say_hello(request):
     order_item_Set = OrderItem.objects.filter(product__collection__id=3) # Order items for products in collection 3
     #Select products that have been ordered and sort them by title
     queryset_product_ids = Product.objects.filter(id__in=OrderItem.objects.values('product_id').distinct()).order_by("title")
+    # Get the last 5 orders with their customer and items (incl product)
+    queryset_preload_orders = Order.objects.select_related('customer').prefetch_related('orderitem_set__product').order_by('-placed_at')[:5]
+
 
     return render(request, 'hello.html', {'name': "Dipaloke",
                                             # 'titles': list(queryset_one)
                                               #'products': list(queryset_five_date),
-                                               'products': list(queryset_product_ids),
+                                               'orders': list(queryset_preload_orders),
                                                 })
