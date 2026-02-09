@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models.aggregates import Count, Max, Min, Avg, Sum
+
 from store.models import Product
 from store.models import Customer
 from store.models import Collection
@@ -38,7 +40,8 @@ def say_hello(request):
     queryset_preload_related_table = Product.objects.select_related('collection').all() #without preloading the related table collection the query will take a long time because it will query for individual products separately
     queryset_preload_prefetch_related = Product.objects.prefetch_related('promotions').all() # When the related table can have multiple objects (product table can have multiple promotions )
     queryset_preload_prefetch_related_select_related = Product.objects.prefetch_related('promotions').select_related('collection').all() # We can combine both methods together as both methods return a queryset
-
+    result_dict_aggregate= Product.objects.aggregate(count=Count('id'), min_price=Min('unit_price')) #used when we need to find summaries such as min max avg
+    result_queryset_aggregate= Product.objects.filter('collection__id').aggregate(count=Count('id'), min_price=Min('unit_price')) #used when we need to find summaries such as min max avg
 
 
 
@@ -52,10 +55,22 @@ def say_hello(request):
     queryset_product_ids = Product.objects.filter(id__in=OrderItem.objects.values('product_id').distinct()).order_by("title")
     # Get the last 5 orders with their customer and items (incl product)
     queryset_preload_orders = Order.objects.select_related('customer').prefetch_related('orderitem_set__product').order_by('-placed_at')[:5]
+    #How many orders do we have
+    result = Order.objects.aggregate(count=Count('id'))
+    #How many units of product 1 have we sold?
+    result_units = Order.objects.filter(product__id=1).aggregate(unit_sold=Sum('quantity'))
+    #How many orders has the customer one placed
+    result_orders = Order.objects.filter(customer__id=1).aggregate(count=Count('id'))
+    #What is the min, max and avg price of products in collection 1?
+    result_price = Product.objects.filter(collection_id=3).aggregate(min_price=Min('unit_price'), avg_price=Avg('unit_price'), max_price=Max('unit_price'))
+
+
 
 
     return render(request, 'hello.html', {'name': "Dipaloke",
                                             # 'titles': list(queryset_one)
                                               #'products': list(queryset_five_date),
-                                               'orders': list(queryset_preload_orders),
+                                               # 'orders': list(queryset_preload_orders),
+                                            #    'Product_counts':  result_queryset_aggregate ,
+                                               'result': result_dict_aggregate,
                                                 })
