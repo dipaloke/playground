@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.aggregates import Count, Max, Min, Avg, Sum
+from django.db.models import Value, F
 
 from store.models import Product
 from store.models import Customer
@@ -42,6 +43,8 @@ def say_hello(request):
     queryset_preload_prefetch_related_select_related = Product.objects.prefetch_related('promotions').select_related('collection').all() # We can combine both methods together as both methods return a queryset
     result_dict_aggregate= Product.objects.aggregate(count=Count('id'), min_price=Min('unit_price')) #used when we need to find summaries such as min max avg
     result_queryset_aggregate= Product.objects.filter('collection__id').aggregate(count=Count('id'), min_price=Min('unit_price')) #used when we need to find summaries such as min max avg
+    queryset_annotate = Customer.objects.annotate(is_new=Value(True)) # annotate is used to add new field to the queryset and value is used to assign value to that field. Here we are adding a new field called is_new and assigning it a value of True for all customers. We can also use annotate to calculate the number of orders for each customer by using Count('order') and then we can filter customers who have more than 5 orders by using filter(order_count__gt=5)
+    queryset_annotate_id = Customer.objects.annotate(new_id=F('id') + 1)
 
 
 
@@ -72,5 +75,6 @@ def say_hello(request):
                                               #'products': list(queryset_five_date),
                                                # 'orders': list(queryset_preload_orders),
                                             #    'Product_counts':  result_queryset_aggregate ,
-                                               'result': result_dict_aggregate,
+                                               # 'result': result_dict_aggregate,
+                                               'result': queryset_annotate,
                                                 })
