@@ -5,6 +5,9 @@ from django.db.models.aggregates import  Max, Min, Avg, Sum
 from django.db.models import Value, F, Func, Count, ExpressionWrapper, DecimalField
 from django.db.models.functions import Concat
 from django.contrib.contenttypes.models import ContentType #represents the content type table in the database which is used to store the information about the models in the application. It has fields like app_label, model and id which are used to identify the model and its instance. We can use this model to get the content type of a model and then we can use that content type to get the instances of that model. For example, if we want to get all the products in our application, we can get the content type of the product model and then we can use that content type to get all the products in our application.
+from django.db import transaction
+from django.db import connection
+
 
 from store.models import Product
 from store.models import Customer
@@ -12,6 +15,8 @@ from store.models import Collection
 from store.models import Order
 from store.models import OrderItem
 from tags.models import TaggedItem
+from store.models import Cart, CartItem
+
 
 # Create your views here.
 
@@ -91,6 +96,75 @@ def say_hello(request):
     content_type = ContentType.objects.get_for_model(Product)
     queryset_product_tags= TaggedItem.objects.select_related('tag').filter(content_type=content_type, object_id=1) # to get all the tags for the product with id 1
 
+    queryset_product_tags_custom_manager = TaggedItem.objects.get_tags_for(Product, 1) #Custom manager to get all the tags fot a specific product
+
+    queryset_caching = Product.objects.all() # to cache the queryset in memory and then we can use it to perform multiple operations on it without hitting the database multiple times. This is useful when we need to perform multiple operations on the same queryset and we want to avoid hitting the database multiple times.
+    queryset_caching[0]
+
+    #Creating a new collection
+    collection = Collection()
+    collection.title = "video Games"
+    collection.featured_product = Product(pk=1)
+    collection.save()
+
+    #Creating collection shorter way
+    collection_new = Collection.objects.create(title='Video Games', featured_product_id = None)
+
+    #Updating a collection
+    Collection.objects.filter(pk=11).update(featured_product_id = 1)
+
+    #Deleting single or multiple collections
+    collection_delete = Collection(pk=11)
+    collection_delete.delete()
+    #multiple delete
+    delete_queryset = Collection.objects.filter(pk__in=[11, 12, 13]).delete()
+
+    #transaction with partial section
+    with transaction.atomic():
+        order = Order()
+        order.customer_id = 1
+        order.save()
+
+        item = OrderItem()
+        item.order = order
+        item.product_id = 1
+        item.quantity = 1
+        item.unit_price = item.product.unit_price
+        item.save()
+
+    #Raw SQL
+    queryset_raw_sql = Product.objects.raw('SELECT * FROM store_product')
+
+    #Bypass the ORM and execute raw SQL directly without model
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT * FROM store_product')
+        raw_sql_result = cursor.fetchall() #returns a list of tuples containing the results of the query. Each tuple represents a row in the result set, and the values in the tuple correspond to the columns in the result set. We can also use cursor.fetchone() to get a single row from the result set or cursor.fetchmany(size) to get a specific number of rows from the result set.
+
+        
+
+
+#Transactions (Need to save all the operations in a transaction block to ensure that either all the operations are successful or none of them are successful. This is useful when we need to perform multiple operations on the database and we want to ensure that the database is in a consistent state.)
+@transaction.atomic
+def create_order(request):
+    order = Order()
+    order.customer_id = 1
+    order.save()
+
+    item = OrderItem()
+    item.order = order
+    item.product_id = 1
+    item.quantity = 1
+    item.unit_price = item.product.unit_price
+    item.save()
+
+
+
+
+
+
+
+
+
 
 
 # Exercise
@@ -137,6 +211,24 @@ def say_hello(request):
     #Top 5 best-selling products and their total sales
     best_Selling_products = Product.objects.annotate(total_sales=Sum(F('orderitem__unit_price') * F('orderitem__quantity'))).order_by('-total_sales')[:5]
 
+    #Create a shopping cart with an item
+    cart = Cart()
+    cart.save()
+
+    item1 = CartItem()
+    item1.cart = cart
+    item1.product_id = 1
+    item1.quantity = 1
+    item1.save()
+
+    #Updating the quantity if an item
+    item1 = CartItem.objects.get(pk=1)
+    item1.quantity = 2
+    item1.save()
+
+    #Removing a cart
+    cart = Cart(pk=1)
+    cart.delete()
 
 
 
