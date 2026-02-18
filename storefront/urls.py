@@ -18,6 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 
+#Changing admin site header and title
+admin.site.site_header = "Storefront Admin"
+admin.site.index_title = "Storefront Admin Portal"
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('playground/', include('playground.urls'))

@@ -10,6 +10,13 @@ class Collection(models.Model):
     title = models.CharField(max_length=255)
     featured_product = models.ForeignKey(
         'Product', on_delete=models.SET_NULL, null=True, related_name='+')
+    #Changing the representation of the model in the admin site
+    def __str__(self) -> str:
+        return self.title
+
+    #Providing the default ordering for the model in the admin site
+    class Meta:
+        ordering = ["title"]
 
 
 class Product(models.Model):
@@ -21,6 +28,14 @@ class Product(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     collection = models.ForeignKey(Collection, on_delete=models.PROTECT)
     promotions = models.ManyToManyField(Promotion)
+
+    #Changing the representation of the model in the admin site
+    def __str__(self) -> str:
+        return self.title
+
+    #Providing the default ordering for the model in the admin site
+    class Meta:
+        ordering = ["title"]
 
 
 class Customer(models.Model):
@@ -40,6 +55,8 @@ class Customer(models.Model):
     birth_date = models.DateField(null=True)
     membership = models.CharField(
         max_length=1, choices=MEMBERSHIP_CHOICES, default=MEMBERSHIP_BRONZE)
+    class Meta:
+        ordering = ["first_name" ]
 
 
 class Order(models.Model):

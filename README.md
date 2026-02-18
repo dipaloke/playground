@@ -274,4 +274,115 @@ Topics:
 			- `content_type = ContentType.objects.get_for_model(Product)`
 		- to get all the tags for the product with id 1
 			- `queryset_product_tags= TaggedItem.objects.select_related('tag').filter(content_type=content_type, object_id=1)`
+**Custom Managers :** --- **from her**
+	- Instead of writing previous detailed code for the **Product tags** we can use a **custom manager** to implement the dame thing with less code.
+		- We need to create the manager before the **tags** apps **tag model**
+			```
+			class TagItemManager(models.Manager):
 
+    def get_tags_for(self, obj_type, obj_id):
+
+        content_Type = ContentType.objects.get_for_model(obj_type)
+
+
+
+        return TaggedItem.objects.select_related('tag').filter(content_type=content_Type, object_id=obj_id)
+
+
+
+class Tag(models.Model):
+
+    label = models.CharField(max_length=255)
+
+
+
+class TaggedItem(models.Model):
+
+    objects = TagItemManager() # to use custom manager
+
+    # What tag is applied to what obj
+
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    # product = models.ForeignKey(Product) #Bad way of implementation as tag app is dependent on the store app
+
+
+
+    # Generic way to identify with (Type (Product, video, article) to find the table, ID to find the record)
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+
+    object_id = models.PositiveBigIntegerField() # only works for the tables with id as integers
+
+    content_object = GenericForeignKey() # to read the actual object
+			```
+- `    queryset_product_tags_custom_manager = TaggedItem.objects.get_tags_for(Product, 1) #Custom manager to get all the tags fot a specific product`
+
+- **Queryset Cache :**
+	- After querying server for the first time Django keeps the data inside the memory so next time we try to access the data, we get it from the cached memory.
+	- This only happens only if we evaluate the query set first.
+	- On the other hand.
+		- If we try to access a perticular data before evaluating we get 2 querys instead of one. **So we need tobe careful.**
+		`queryset_caching = Product.objects.all()`
+- **Creating objects : (creating new record in DB)**
+	- 2 Ways to create new objects in the DB:
+		- detailed way: (will auto update while model is changed)
+			```
+			collection = Collection()
+			collction.name = 'Video Games'
+			collection.featured_product = Product(pk=1)
+			collection.save()
+		    ```
+		- One line:  (will not update automatically)
+			`Collection.objects.create(name='a', featured_product_id=1)`
+- **Updating Objects :**
+	- While updating a object we must read the obj from database first. Otherwise if we update the Object partially other  fields are going to be empty. (Not applicable for the short hand)
+		- Because django doesn't have field change tracking like other orms.
+		- `Collection.objects.filter(pk=11).update(featured_product_id = 1)`
+- **Deleting Objects :**
+	- We can delete single or multiple objects to query-set.
+	- **single**:
+		- `Collection(pk=11).delete()`
+	- **multiple**:
+		- `Collection.objects.filter(pk__in=[11, 12, 13]).delete()`
+- **Transactions :**
+	- There are times when we want to make multiple changes to our database in a **atomic way** : All the changes should be saved at the same time . No changes should fail.
+	- The query to role back when a micro part of the query is failed. Such as we dont want to create an order if the  query of the order fails.  Transections are used as decorators or inside the function when creating the query.
+		```
+		Partial section of a function
+		with transaction.atomic():
+        order = Order()
+        order.customer_id = 1
+        order.save()
+
+        item = OrderItem()
+        item.order = order
+        item.product_id = 1
+        item.quantity = 1
+        item.unit_price = item.product.unit_price
+        item.save()
+		```
+		```
+		By decoretor
+	@transaction.atomic
+	def create_order(request):
+	    order = Order()
+	    order.customer_id = 1
+	    order.save()
+
+	    item = OrderItem()
+	    item.order = order
+	    item.product_id = 1
+	    item.quantity = 1
+	    item.unit_price = item.product.unit_price
+	    item.save()
+		```
+- **Executing Raw SQL Queries :**
+	- When writing the query becomes complex we can easily use RAW SQL Queries inside the view to query the DB.
+		- `queryset_raw_sql = Product.objects.raw('SELECT * FROM store_product')`
+	- Sometimes we want to directly query DB bypassing the model of Django:
+		- ```
+		  with connection.cursor() as cursor:
+	        cursor.execute('SELECT * FROM store_product')
+	        raw_sql_result = cursor.fetchall()
+		  ```
