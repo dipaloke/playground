@@ -57,6 +57,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_select_related = ["collection"] #preloads collection related field. same as `queryset.select_Related`
     list_filter = ['collection', 'last_update', InventoryFilter]
     list_per_page = 10
+    search_fields = ['title']
 
     def collection_title(self, product):
         return product.collection.title
@@ -80,23 +81,29 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(models.Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['first_name', 'last_name', 'email', 'phone', 'membership','order_count']
+    list_display = ['first_name', 'last_name', 'email', 'phone', 'membership','orders']
     list_editable = ['membership']
     list_per_page = 10
+    ordering = ['first_name', 'last_name']
     search_fields=['first_name__istartswith', 'last_name__istartswith']
 
-    @admin.display(ordering='orders_count')
+    @admin.display(ordering='order_count')
     #Providing links to Other Pages
-    def order_count(self, customer):
+    def orders(self, customer):
         url = (
             # reverse('admin:app_model_page')
-            reverse('admin:store+order_changelist')
+            reverse('admin:store_order_changelist')
             + '?'
             + urlencode({
                 'customer__id': str(customer.id)
             })
         )
         return format_html('<a href="{}">{}</a>', url, customer.orders_count)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            orders_count=Count('order')
+        )
 
 #Creating items inside order (Editing children using inline)
 class OrderItemInline(admin.TabularInline):
@@ -117,6 +124,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(models.Collection)
 class CollectionAdmin(admin.ModelAdmin):
+    autocomplete_fields = ['featured_product']
     list_display = ['title', 'featured_product', 'product_count']
     search_fields = ['title'] # used for auto complete
 
@@ -124,13 +132,13 @@ class CollectionAdmin(admin.ModelAdmin):
     def product_count(self, collection):
         url = (
             # reverse('admin:app_model_page')
-            reverse('admin:store+product_changelist')
+            reverse('admin:store_product_changelist')
             + '?'
             + urlencode({
                 'collection__id': str(collection.id)
             })
         )
-        return format_html('<a href="{}">{}</a>', url, collection.products_count)
+        return format_html('<a href="{}">{}</a>', url, collection.product_count)
         # return collection.product_count
 
     def get_queryset(self, request: HttpRequest) -> QuerySet:

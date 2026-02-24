@@ -140,7 +140,7 @@ def say_hello(request):
         cursor.execute('SELECT * FROM store_product')
         raw_sql_result = cursor.fetchall() #returns a list of tuples containing the results of the query. Each tuple represents a row in the result set, and the values in the tuple correspond to the columns in the result set. We can also use cursor.fetchone() to get a single row from the result set or cursor.fetchmany(size) to get a specific number of rows from the result set.
 
-        
+
 
 
 #Transactions (Need to save all the operations in a transaction block to ensure that either all the operations are successful or none of them are successful. This is useful when we need to perform multiple operations on the database and we want to ensure that the database is in a consistent state.)
@@ -238,5 +238,5 @@ def create_order(request):
                                                # 'orders': list(queryset_preload_orders),
                                             #    'Product_counts':  result_queryset_aggregate ,
                                                # 'result': result_dict_aggregate,
-                                               'result': queryset_annotate,
+                                               # 'result': queryset_annotate,
                                                 })
