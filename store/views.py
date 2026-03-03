@@ -11,8 +11,10 @@ from .models import Product
 def product_list(request):
     # return HttpResponse('ok')
     # return Response('ok')
-    query_set = Product.objects.all()
-    serializer = ProductSerializer(query_set, many= True)
+    # query_set = Product.objects.all()
+    #select related collection title
+    query_set = Product.objects.select_related('collection').all()
+    serializer = ProductSerializer(query_set, many= True, context={'request': request})
     return Response(serializer.data)
 
 @api_view()
@@ -29,3 +31,9 @@ def product_details(request, id):
         product = get_object_or_404(Product, pk=id)
         serializer = ProductSerializer(product)
         return Response(serializer.data)
+
+
+#creating view for Nesting a hyperlink to review the nested related object
+@api_view()
+def collection_details(request, pk):
+      return Response('ok')
