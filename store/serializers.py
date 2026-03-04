@@ -48,7 +48,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id','title', 'unit_price','price','price_with_tax','collection','collection_title', 'collection_hyperlink', 'collection_obj']
+        fields = ['id','title', 'description', 'slug','inventory', 'unit_price','price','price_with_tax','collection','collection_title', 'collection_hyperlink', 'collection_obj']
         # fields ='__all__' # Bad practice : Adds all of the fields of the product class
 
     price = serializers.DecimalField(max_digits=6, decimal_places=2, source='unit_price' )
@@ -70,3 +70,25 @@ class ProductSerializer(serializers.ModelSerializer):
     #     if data['password'] != data['confirm_password']:
     #         return serializers.ValidationError('Password do not match')
     #     return data # dictionary
+
+    #Overwrite how a product is created
+    def create(self, validated_data):
+        product = Product(**validated_data) # extracting the validated data
+        # Now add extra fields
+        product.other = 1
+        product.save()
+        return product
+
+    #Overwrite how a product is updated
+    def update(self, instance, validated_data):
+        instance.unit_price = validated_data.get('unit_price')
+        instance.save()
+        return instance
+
+
+class CollectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Collection
+        fields = ['id', 'title', 'products_count']
+
+    products_count = serializers.IntegerField()
