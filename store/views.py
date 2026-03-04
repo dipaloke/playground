@@ -7,15 +7,27 @@ from .serializers import ProductSerializer
 from .models import Product
 
 # Create your API views here.
-@api_view()
+@api_view(['GET','POST'])
 def product_list(request):
     # return HttpResponse('ok')
     # return Response('ok')
     # query_set = Product.objects.all()
     #select related collection title
-    query_set = Product.objects.select_related('collection').all()
-    serializer = ProductSerializer(query_set, many= True, context={'request': request})
-    return Response(serializer.data)
+    if (request.method == 'GET'):
+        query_set = Product.objects.select_related('collection').all()
+        serializer = ProductSerializer(query_set, many= True, context={'request': request})
+        return Response(serializer.data)
+    elif request.method == 'POST':
+          serializer = ProductSerializer(data=request.data) # deserializing data to save the product obj to DB
+        #   if serializer.is_valid():
+        #     serializer.validated_data
+        #     return Response('ok')
+        #   else:
+        #        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+          serializer.is_valid(raise_exception=True)
+          serializer.validated_data
+          return Response('ok')
+
 
 @api_view()
 def product_details(request, id):
