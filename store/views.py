@@ -6,57 +6,99 @@ from rest_framework import status
 from .serializers import ProductSerializer, CollectionSerializer
 from .models import Product, Collection
 from django.db.models.aggregates import Count
+from rest_framework.views import APIView
+
+from rest_framework.mixins import ListModelMixin, CreateModelMixin
 
 # Create your API views here.
-@api_view(['GET','POST'])
-def product_list(request):
-    # return HttpResponse('ok')
-    # return Response('ok')
-    # query_set = Product.objects.all()
-    #select related collection title
-    if (request.method == 'GET'):
+
+#Class Based views
+class ProductList(APIView):
+     def get(self, request):
         query_set = Product.objects.select_related('collection').all()
         serializer = ProductSerializer(query_set, many= True, context={'request': request})
         return Response(serializer.data)
-    elif request.method == 'POST':
-          serializer = ProductSerializer(data=request.data) # deserializing data to save the product obj to DB
-        #   if serializer.is_valid():
-        #     serializer.validated_data
-        #     return Response('ok')
-        #   else:
-        #        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-          serializer.is_valid(raise_exception=True)
-          serializer.save()
-          # serializer.validated_data
-          return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-#To  get, update, delete a product
-@api_view(['GET', 'PUT','DELETE'])
-def product_details(request, id):
-    # try:
-    #     product = Product.objects.get(pk=id)
-    #     serializer = ProductSerializer(product)
-    #     return Response(serializer.data)
-    # except Product.DoesNotExist:
-    #     return Response(status=status.HTTP_404_NOT_FOUND)
+     def post(self, request):
+        serializer = ProductSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    # We can get the same result with this shortcut get_object_or_404
+#Function based views
+# @api_view(['GET','POST'])
+# def product_list(request):
+#     # return HttpResponse('ok')
+#     # return Response('ok')
+#     # query_set = Product.objects.all()
+#     #select related collection title
+#     if (request.method == 'GET'):
+#         query_set = Product.objects.select_related('collection').all()
+#         serializer = ProductSerializer(query_set, many= True, context={'request': request})
+#         return Response(serializer.data)
+#     elif request.method == 'POST':
+#           serializer = ProductSerializer(data=request.data) # deserializing data to save the product obj to DB
+#         #   if serializer.is_valid():
+#         #     serializer.validated_data
+#         #     return Response('ok')
+#         #   else:
+#         #        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#           serializer.is_valid(raise_exception=True)
+#           serializer.save()
+#           # serializer.validated_data
+#           return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+#Class View
+class ProductDetails(APIView):
+    def get(self, request, id):
         product = get_object_or_404(Product, pk=id)
-        if request.method == 'GET':
-            serializer = ProductSerializer(product, context={'request': request})
-            return Response(serializer.data)
-        elif request.method == 'PUT':
-             serializer = ProductSerializer(product, data=request.data,)
-             serializer.is_valid(raise_exception=True)
-             serializer.save()
-             return Response(serializer.data)
-        elif request.method == 'DELETE':
-             if product.orderitems.count() > 0:
-                  return Response({
+        serializer = ProductSerializer(product, context={'request': request})
+        return Response(serializer.data)
+    def put(self, request, id):
+        product = get_object_or_404(Product, pk=id)
+        serializer = ProductSerializer(product, data=request.data,)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    def delete(self, request, id):
+        product = get_object_or_404(Product, pk=id)
+        if product.orderitems.count() > 0:
+            return Response({
                        'error': 'Product can not be deleted as it associated with an order'
-                  },status=status.HTTP_405_METHOD_NOT_ALLOWED)
-             product.delete()
-             return Response(status=status.HTTP_204_NO_CONTENT)
+            },status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            product.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+# function view
+#To  get, update, delete a product
+# @api_view(['GET', 'PUT','DELETE'])
+# def product_details(request, id):
+#     # try:
+#     #     product = Product.objects.get(pk=id)
+#     #     serializer = ProductSerializer(product)
+#     #     return Response(serializer.data)
+#     # except Product.DoesNotExist:
+#     #     return Response(status=status.HTTP_404_NOT_FOUND)
+
+#     # We can get the same result with this shortcut get_object_or_404
+#         product = get_object_or_404(Product, pk=id)
+#         if request.method == 'GET':
+#             serializer = ProductSerializer(product, context={'request': request})
+#             return Response(serializer.data)
+#         elif request.method == 'PUT':
+#              serializer = ProductSerializer(product, data=request.data,)
+#              serializer.is_valid(raise_exception=True)
+#              serializer.save()
+#              return Response(serializer.data)
+#         elif request.method == 'DELETE':
+#              if product.orderitems.count() > 0:
+#                   return Response({
+#                        'error': 'Product can not be deleted as it associated with an order'
+#                   },status=status.HTTP_405_METHOD_NOT_ALLOWED)
+#              product.delete()
+#              return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 #creating view for Nesting a hyperlink to review the nested related object
