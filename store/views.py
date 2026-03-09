@@ -9,21 +9,34 @@ from django.db.models.aggregates import Count
 from rest_framework.views import APIView
 
 from rest_framework.mixins import ListModelMixin, CreateModelMixin
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 
 # Create your API views here.
 
 #Class Based views
-class ProductList(APIView):
-     def get(self, request):
-        query_set = Product.objects.select_related('collection').all()
-        serializer = ProductSerializer(query_set, many= True, context={'request': request})
-        return Response(serializer.data)
+# class ProductList(APIView):
+#      def get(self, request):
+#         query_set = Product.objects.select_related('collection').all()
+#         serializer = ProductSerializer(query_set, many= True, context={'request': request})
+#         return Response(serializer.data)
 
-     def post(self, request):
-        serializer = ProductSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+#      def post(self, request):
+#         serializer = ProductSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# Using GENERIC VIEWS
+class ProductList(ListCreateAPIView):
+    queryset = Product.objects.select_related('collection').all()
+    # def get_queryset(self): # We only need to overwrite the methods only if we are going to add custom logics to these method.
+    #     return Product.objects.select_related('collection').all()
+
+    serializer_class = ProductSerializer
+    # def get_serializer_class(self):
+    #     return ProductSerializer()
+    def get_serializer_context(self):
+        return {'request': self.request}
 
 #Function based views
 # @api_view(['GET','POST'])
@@ -66,8 +79,27 @@ class ProductDetails(APIView):
             return Response({
                        'error': 'Product can not be deleted as it associated with an order'
             },status=status.HTTP_405_METHOD_NOT_ALLOWED)
-            product.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# Converting the GEneral Class view to the Customized Generic class view with Concrete View Classes
+class ProductDetails(RetrieveUpdateDestroyAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    def delete(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        if product.orderitems.count() > 0:
+            return Response({
+                       'error': 'Product can not be deleted as it associated with an order'
+            },status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+
 
 
 
@@ -114,6 +146,10 @@ def collection_list(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+# Converting collection_list view from function to Class View using the Generic ConCreate view classes
+class CollectionList(ListCreateAPIView):
+    queryset = Collection.objects.annotate(products_count=Count('products')).all()
+    serializer_class = CollectionSerializer
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def collection_detail(request, pk):
@@ -129,6 +165,21 @@ def collection_detail(request, pk):
         serializer.save()
         return Response(serializer.data)
     elif request.method == 'DELETE':
+        if collection.products.count() > 0:
+            return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        collection.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# Customized Generic class view
+
+class CollectionDetail(RetrieveUpdateDestroyAPIView):
+    queryset = Collection.objects.annotate(products_count=Count('products')).all()
+    serializer_class = CollectionSerializer
+
+    def delete(self, request, pk):
+        collection = get_object_or_404(
+        Collection.objects.annotate(
+            products_count=Count('products')), pk=pk)
         if collection.products.count() > 0:
             return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         collection.delete()
