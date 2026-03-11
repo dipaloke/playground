@@ -3,8 +3,8 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ProductSerializer, CollectionSerializer
-from .models import Product, Collection, OrderItem
+from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
+from .models import Product, Collection, OrderItem, Reviews
 from django.db.models.aggregates import Count
 from rest_framework.views import APIView
 
@@ -237,3 +237,17 @@ class CollectionViewSet(ModelViewSet):
     #         return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     #     collection.delete()
     #     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+class ReviewViewSet(ModelViewSet):
+    # queryset = Reviews.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Reviews.objects.filter(product_id=self.kwargs.get('product_pk'))
+
+    # we can read the product id from the url and pass it to the serializer via context obj
+
+    def get_serializer_context(self):
+        return {'product_id': self.kwargs['product_pk']}

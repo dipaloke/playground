@@ -1,15 +1,22 @@
 from decimal import Decimal
 from rest_framework import serializers
-from .models import Product, Collection
+from .models import Product, Collection, Reviews
 
 
 # class CollectionSerializer(serializers.Serializer):
 #     id = serializers.IntegerField()
 #     title = serializers.CharField(max_length=255)
+# class CollectionSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Collection
+#         fields = ['id', 'title']
+
 class CollectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Collection
-        fields = ['id', 'title']
+        fields = ['id', 'title', 'products_count']
+
+    products_count = serializers.IntegerField(read_only=True)
 
 
 # class ProductSerializer(serializers.Serializer):
@@ -48,7 +55,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id','title', 'description', 'slug','inventory', 'unit_price','price','price_with_tax','collection','collection_title', 'collection_hyperlink', 'collection_obj']
+        fields = ['id','title', 'description', 'slug','inventory', 'unit_price','price','price_with_tax','collection','collection_title', 'collection_obj']
         # fields ='__all__' # Bad practice : Adds all of the fields of the product class
 
     price = serializers.DecimalField(max_digits=6, decimal_places=2, source='unit_price' )
@@ -59,11 +66,11 @@ class ProductSerializer(serializers.ModelSerializer):
     def calculate_tax(self, product: Product):
          return product.unit_price * Decimal(1.2)
 
-    collection_hyperlink = serializers.HyperlinkedRelatedField(
-        queryset= Collection.objects.all(),
-        view_name = 'collection_details', # will be used as the hyperlink name. (we need to create the view in urls)
-        source='collection',
-    )
+    # collection_hyperlink = serializers.HyperlinkedRelatedField(
+    #     queryset= Collection.objects.all(),
+    #     view_name = 'collection_details', # will be used as the hyperlink name. (we need to create the view in urls)
+    #     source='collection',
+    # )
 
     # Over writing the default form validation
     # def validate(self, data):
@@ -86,9 +93,15 @@ class ProductSerializer(serializers.ModelSerializer):
         return instance
 
 
-class CollectionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Collection
-        fields = ['id', 'title', 'products_count']
 
-    products_count = serializers.IntegerField(read_only=True)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reviews
+        fields = ['id', 'date', 'name', 'description']
+
+    # we want to overwrite the create method so we can get the product id from url sent from views via context
+    def create(self, validated_data):
+        product_id = self.context['product_id']
+        return Reviews.objects.create(product_id=product_id, **validated_data)
